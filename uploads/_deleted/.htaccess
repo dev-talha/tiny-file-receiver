@@ -1,0 +1,43 @@
+# AT Space soft-deleted files protection
+# Soft-deleted files are never served over the web, and never executed.
+
+Options -Indexes -ExecCGI
+
+# Apache 2.4+ / LiteSpeed
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 and older (compatibility)
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+# Defense-in-depth: never execute anything in here.
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .phar .pl .py .pyc .cgi .sh .bash .jsp .asp .aspx
+RemoveType    .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .phar .pl .py .cgi .sh
+
+<FilesMatch "(?i)\.(php|phtml|php[0-9]|phps|phar|pl|py|pyc|cgi|sh|bash|jsp|asp|aspx|exe|com|bat|cmd)$">
+    SetHandler none
+    ForceType application/octet-stream
+</FilesMatch>
+
+<IfModule mod_php.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php5.c>
+    php_admin_flag engine off
+</IfModule>
+
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Security-Policy "sandbox"
+    Header set Content-Disposition "attachment"
+</IfModule>

@@ -1,0 +1,80 @@
+# AT Space upload folder protection
+# Save this file as: uploads/.htaccess
+# Uploaded files AND the metadata/security files must be served through
+# admin.php only -- never directly over the web, and never executed.
+
+Options -Indexes -ExecCGI
+
+# ---------------------------------------------------------------------------
+# 1) Default deny: block direct web access to EVERYTHING in this folder.
+#    This alone already blocks every uploaded file, upload_data.json and
+#    login_security.json.
+# ---------------------------------------------------------------------------
+
+# Apache 2.4+ / LiteSpeed
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 and older (compatibility)
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# 2) Defense-in-depth: even if the deny rule above is ever weakened or not
+#    honoured, make sure NOTHING in this folder can be executed as a script.
+#    A file that cannot run is harmless even if it becomes reachable.
+# ---------------------------------------------------------------------------
+
+# Stop Apache from handing files to any interpreter and serve them as text.
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .phar .pl .py .pyc .cgi .sh .bash .jsp .asp .aspx
+RemoveType    .php .phtml .php3 .php4 .php5 .php7 .php8 .phps .phar .pl .py .cgi .sh
+
+<FilesMatch "(?i)\.(php|phtml|php[0-9]|phps|phar|pl|py|pyc|cgi|sh|bash|jsp|asp|aspx|exe|com|bat|cmd)$">
+    SetHandler none
+    ForceType application/octet-stream
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Turn the PHP engine off entirely for this directory.
+# Wrapped in IfModule guards so it does NOT cause a 500 error under
+# PHP-FPM / CGI (where php_flag is unknown). It applies only when PHP runs
+# as an Apache module.
+<IfModule mod_php.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php5.c>
+    php_admin_flag engine off
+</IfModule>
+
+# Explicitly and unconditionally deny sensitive / script file types by name.
+<FilesMatch "(?i)\.(json|php|phtml|php[0-9]|phps|phar|html?|js|mjs|svg|cgi|pl|py|sh|bash)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Extra hardening headers.
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Security-Policy "sandbox"
+    Header set Content-Disposition "attachment"
+</IfModule>
